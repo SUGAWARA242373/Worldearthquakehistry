@@ -51,8 +51,11 @@ save_path = (
 
 m.save(save_path)
 
-print("================================")
-print("地図保存完了")
-print(save_path)
-print(f"地震数: {earthquake_count}")
-print("================================")
+# 地震数を作る（ここ追加）
+earthquake_count = len(data["features"])
+
+# Streamlit表示に変更
+st.write("================================")
+st.write(f"地図表示完了")
+st.write(f"地震数: {earthquake_count}")
+st.write("================================")
