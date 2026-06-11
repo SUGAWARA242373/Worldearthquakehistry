@@ -7,30 +7,30 @@ from folium.plugins import MarkerCluster
 
 st.title("地震マップ（USGS）")
 
-# ✅ メッセージ用プレースホルダ
-status = st.empty()
-status.write("地震データ取得中...")
+# ✅ ローディング表示
+with st.spinner("地震データ取得中..."):
 
-# データ取得
-url = (
-    "https://earthquake.usgs.gov/fdsnws/event/1/query.geojson"
-    "?starttime=2021-01-01"
-    "&endtime=2026-12-31"
-    "&minmagnitude=5"
-)
+    try:
+        url = (
+            "https://earthquake.usgs.gov/fdsnws/event/1/query.geojson"
+            "?starttime=2024-01-01"
+            "&endtime=2024-12-31"
+            "&minmagnitude=5"
+        )
 
-response = requests.get(url)
-data = response.json()
+        response = requests.get(url, timeout=10)
+        data = response.json()
 
-# ✅ メッセージ消す
-status.empty()
+    except Exception as e:
+        st.error(f"データ取得エラー: {e}")
+        st.stop()
 
-# 地図作成
+# 地図
 m = folium.Map(location=[0, 0], zoom_start=2)
 marker_cluster = MarkerCluster().add_to(m)
 
-# データ描画
-for eq in data["features"]:
+# 最大件数制限（重要）
+for eq in data["features"][:500]:   # ←ここ重要（負荷制御）
     coords = eq["geometry"]["coordinates"]
     lon, lat = coords[0], coords[1]
     mag = eq["properties"]["mag"]
@@ -40,8 +40,8 @@ for eq in data["features"]:
         popup=f"M {mag}"
     ).add_to(marker_cluster)
 
-# 表示
 st_folium(m)
+
 
 
 # 保存
