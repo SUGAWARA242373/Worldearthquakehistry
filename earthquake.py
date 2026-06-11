@@ -1,12 +1,13 @@
+
+import streamlit as st
 import requests
 import folium
-import urllib3
+from streamlit_folium import st_folium
 from folium.plugins import MarkerCluster
 
-# SSL警告OFF
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+st.title("地震マップ（USGS）")
 
-# USGS API
+# データ取得
 url = (
     "https://earthquake.usgs.gov/fdsnws/event/1/query.geojson"
     "?starttime=2021-01-01"
@@ -14,66 +15,29 @@ url = (
     "&minmagnitude=5"
 )
 
-print("地震データ取得中...")
+st.write("地震データ取得中...")
 
-# データ取得
-response = requests.get(url, verify=False)
-
-# JSON化
+response = requests.get(url)
 data = response.json()
 
-print("取得完了")
+# フォリウム地図作成
+m = folium.Map(location=[0, 0], zoom_start=2)
 
-# 地図作成
-m = folium.Map(
-    location=[20, 0],
-    zoom_start=2
-)
-
-# クラスタ
 marker_cluster = MarkerCluster().add_to(m)
 
-earthquake_count = 0
+# データプロット
+for eq in data["features"]:
+    coords = eq["geometry"]["coordinates"]
+    lon, lat = coords[0], coords[1]
+    mag = eq["properties"]["mag"]
 
-# 地震処理
-for feature in data["features"]:
-
-    properties = feature["properties"]
-    geometry = feature["geometry"]
-
-    mag = properties["mag"]
-    place = properties["place"]
-
-    if mag is None:
-        continue
-
-    lon, lat, depth = geometry["coordinates"]
-
-    earthquake_count += 1
-
-    # 色
-    if mag >= 7:
-        color = "red"
-    elif mag >= 6:
-        color = "orange"
-    else:
-        color = "blue"
-
-    popup_text = (
-        f"<b>Magnitude:</b> {mag}<br>"
-        f"<b>Place:</b> {place}<br>"
-        f"<b>Depth:</b> {depth} km"
-    )
-
-    folium.CircleMarker(
+    folium.Marker(
         location=[lat, lon],
-        radius=mag * 2,
-        popup=folium.Popup(popup_text, max_width=300),
-        color=color,
-        fill=True,
-        fill_color=color,
-        fill_opacity=0.6,
+        popup=f"M {mag}"
     ).add_to(marker_cluster)
+
+# ✅ 表示（これが超重要）
+st_folium(m, width=700)
 
 # 保存
 save_path = (
